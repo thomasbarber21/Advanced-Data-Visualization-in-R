@@ -1,0 +1,177 @@
+---
+title: "Advanced Data Visualization in R"
+author: "Tom Barber"
+subtitle: A Comparison of Standard Methods, ggplot, and Plotly
+---
+
+```{r, include=FALSE}
+library(ggplot2)
+library(truncnorm)
+library(lubridate)
+library(tidyverse)
+library(broom)
+library(plotly)
+```
+
+  Data visualization in R is a broad topic. There are many different packages that provide advanced ways to display information beyond the standard methods provided in R. With so many different packages it is important to use the ones that are best suited for the needs of the user. As such, the following comparisons of standard methods, ggplot, and plotly will help users differentiate packages and use the best one for their needs.
+  In R there are very simple plotting methods that do not even require outside installation of packages. For example, already installed in base R are functions that can create plots of data ranging from histograms to kernel density plots. These functions can be called with 'hist()', 'density()', 'barplot()', etc. Within each function are layers that the user can input to change the aesthetics of the graph. For example, in the histogram function we are able to do quite a few aesthetic changes. The first input in hist() is always the data being plotted. After that the 'breaks =' input allows us to change the number of bins in the graph, which is a useful tool that helps accurately depict the distribution. Beyond that there are tools such as main, xlab, ylab, and col. These allow the user to input titles, x and y labels, and change the color of the graph. Displayed below is a graph of the truncated normal using very basic inputs in the histogram function.
+
+```{r}
+Z <- rnorm(10000, mean = 0, sd = 1)
+Z_trunc <- Z[Z >= 0.5]
+range_x <- seq(min(Z_trunc), max(Z_trunc), length.out = 10000)
+num <- dnorm(range_x, mean = mean(Z_trunc), sd = sd(Z_trunc))
+denom <- pnorm(max(range_x), mean = mean(Z_trunc), sd = sd(Z_trunc)) - pnorm(min(range_x),mean = mean(Z_trunc), sd = sd(Z_trunc))
+final_density <- num / denom
+```
+
+```{r}
+hist(Z_trunc, breaks = 40, freq = FALSE, main = "Z_trunc in Standard Plot Method")
+```
+
+  Using the truncnorm package the code takes a normal distribution, truncates it at a value of 0.5, and then normalizes it to a density. The result is then displayed in a histogram. In this case the plotting method is very simple, which is great. As computations become more complex, however, some issues start to arise. Due to this it is important to explore a new package, ggplot2. This graphing package introduces ggplot(). Such a tool is much more capable of handling more complex data, like linear models, and provides a better structured approach to graphing. For example, below is the first figure graphed through a ggplot() approach.
+
+```{r}
+ggplot()+
+  geom_histogram(aes(x = Z_trunc, y = after_stat(density)), bins = 40)+
+  scale_x_continuous(limits = c(0.5, max(Z_trunc)))+
+  labs(title = "Histogram of Z_trunc using ggplot", x = "Z_trunc", y = "Density")
+```
+
+  One might notice that for simple graphing ggplot() may look more complex than standard plotting methods. While this is initially true, as the data visualization becomes more complex ggplot() will begin to become more useful and robust than standard methods. This is due to the ability of the user to change components within ggplot(). The function has inputs that include the data, mappings, geometric objects, and aesthetic properties. Mappings provide relationships between the data and the aesthetics of the graph, while the aesthetic properties (shortened to aes) control how the plot looks. The input of geometric objects control how the data is displayed, through histograms, bar plots, line graphs, etc. Now, let's compare the standard plotting method to ggplot() using the first example. The difference now will be the addition of a line representing the theoretical normal density. The next set of plots will then remove the theoretical normal density and opt to plot two different normal distributions over one another, and allow for a comparison in plotting methods.
+
+```{r}
+hist(Z_trunc, breaks = 20, freq = FALSE, main = "Z_trunc and normal dist in Standard Plot Method")
+lines(range_x, final_density, col = 'orange')
+```
+
+```{r}
+ggplot()+
+  geom_histogram(aes(x = Z_trunc, y = after_stat(density)), bins = 20)+
+  geom_line(aes(x = range_x, y = final_density), color = "orange")+
+  labs(title = "Histogram of Z_trunc and normal dist using ggplot", x = "Z_trunc", y = "Density")
+```
+
+```{r}
+Z <- rnorm(10000, mean = 0, sd = 1)
+Z_trunc <- Z[Z >= 0.5]
+Z2 <- rnorm(10000, mean = 0, sd = 1)
+z2_trunc <- Z2[Z2 > 0.5]
+maximum <- max(max(Z_trunc), max(z2_trunc))
+hist(Z_trunc, breaks = seq(0.5, maximum, length.out = 21), freq = FALSE, main = "Two Truncated Normal Distribution in Standard Plot Method", xlab = "x")
+hist(z2_trunc, breaks = seq(0.5, maximum, length.out = 21), add = TRUE, freq = FALSE, main = "Two Truncated Normal Distribution in Standard Plot Method", xlab = "x", col = rgb(1, 0, 0, alpha = 0.25))
+legend("topright", legend = c("Z_trunc", "z2_trunc"), fill = c("gray", "red"))
+```
+
+```{r}
+ggplot()+
+  geom_histogram(data = data.frame(x = Z_trunc), aes(x = x, y = after_stat(density), color = "Z_trunc"), breaks = seq(0.5, max(Z2), length.out = 21), alpha = 0.5)+
+  geom_histogram(data = data.frame(x = z2_trunc), aes(x = x, y = after_stat(density), color = "Z2_trunc"), breaks = seq(0.5, max(Z2), length.out = 21), alpha = 0.25)+
+  labs(title = "Two Truncated Normal Distributions in ggplot", x = "x", y = "Density")
+```
+
+  Notice that as graphs become more complex, standard plotting methods in R become more limited. On the other hand, ggplot() maintains its simple structure and its robust inputs allow for much greater customization. A final point on this can be seen in a case study on daily COVID-19 cases in the US, UK, and Canada.
+
+```{r}
+covid_data <- read.csv("https://opendata.ecdc.europa.eu/covid19/casedistribution/csv")
+covid_data <- covid_data %>% mutate(date = dmy(dateRep), country = countriesAndTerritories)
+```
+
+```{r}
+US <- covid_data %>% filter(country == "United_States_of_America")
+UK <- covid_data %>% filter(country == "United_Kingdom")
+Canada <- covid_data %>% filter(country == "Canada")
+```
+
+```{r}
+UK$cases_per_capita <- UK$cases / UK$popData2019
+US$cases_per_capita <- US$cases / US$popData2019
+Canada$cases_per_capita <- Canada$cases / Canada$popData2019
+```
+
+```{r}
+ggplot()+
+  geom_line(data = US, aes(x = date, y = cases_per_capita, color = "US"))+
+  geom_line(data = UK, aes(x = date, y = cases_per_capita, color = "UK"))+
+  geom_line(data = Canada, aes(x = date, y = cases_per_capita, color = "Canada"))+
+  labs(title = "Daily COVID-19 Cases")
+```
+
+  While having clean aesthetics and code is beneficial, this example is quite simple. Let's take another case study. This will be of federal reserve funds over the course of a President's term in office. Using a linear model one can explore the relationship of federal reserve funds over an election cycle, while controlling for political parties. In doing so we can find the interaction between reserve funds and party affiliation. In introducing a linear model we are also testing standard plotting methods and ggplot(), and will see there is a clear choice for which one to use in such cases.
+
+```{r}
+load("C:/Users/12074/Desktop/federalreserve.RData")
+linear_model <- lm(FEDFUNDS ~ election * democrat, data = fed)
+```
+
+```{r}
+augment(linear_model, data = fed) %>%
+  ggplot()+
+  geom_point(aes(x = election, y = FEDFUNDS, color = democrat))+
+  geom_line(aes(x = election, y = .fitted, group = democrat, color = democrat))+
+  labs(title = "Federal Reserve Funds vs Political Party")
+```
+
+  This graph shows the relationship between Federal Funds and elections. The election variable represents quarters since the previous Presidential election, light blue represents democrat, and dark blue is republican. This graph shows the relationship that throughout a President's term the Fed Funds tend to decrease for Republican Presidents and increase for Democratic Presidents. We see that using the augment function from the broom package allows us to add additional columns to the data frame. We can then use a pipe operator to graph the results of the linear regression with ggplot, using it to also differentiate our data further. For comparison, we can see that using ggplot in this case is much more streamlined. Below is the code that uses standard R graphing tools. Not only is the code much more complex, but the graph produced is not as clean either.
+
+```{r}
+augmented_fedfund_data <- data.frame(fed, predict(linear_model), residuals(linear_model))
+
+plot(fed$election, fed$FEDFUNDS, col = ifelse(fed$democrat == 1, "blue", "red"))
+
+points(augmented_fedfund_data$election, augmented_fedfund_data$'predict(linear_model)', col = ifelse(augmented_fedfund_data$democrat == 1, "blue", "red"))
+
+legend("topright", legend = c("republican = red", "democrat = blue"), col = c("red", "blue"))
+
+lines(fed$election[fed$democrat == 0], fitted.values(linear_model)[fed$democrat == 0], col = "red")
+lines(fed$election[fed$democrat == 1], fitted.values(linear_model)[fed$democrat == 1], col = "blue")
+
+```
+
+  Finally, let's introduce the plotly package. Plotly is an interactive graphing method that allows for users to zoom, pan, hover over data, and make comparisons. Plotly even has a built-in function that can convert ggplot() graphs to plotly, and has a dashboard method that allows users to display multiple graphs for comparisons. Below we first see our COVID-19 graph from before, but this time it is interactive.
+
+```{r}
+new_data <- covid_data %>% filter(country == "United_States_of_America" | country == "United_Kingdom" | country == "Canada")
+
+plot_ly(new_data, x = ~date, y = ~cases, color = ~country, type = "scatter", mode = "lines", line = list(width = 2))
+```
+
+```{r}
+x <- c(1, 2, 3, 4, 5)
+y <- c(1, 2, 3, 4, 5)
+
+simple_plot <- plot_ly(x = x, y = y, type = "scatter", mode = "markers", marker = list(color = "red"), name = " y = x")
+plot_ly(x = x, y = y, type = "scatter", mode = "markers", marker = list(color = "red"))
+
+ggplot_Z_trunc <- ggplot()+
+  geom_histogram(aes(x = Z_trunc, y = after_stat(density)), bins = 20)+
+  geom_line(aes(x = range_x, y = final_density), color = "orange")
+
+converted_ggplot <- ggplotly(ggplot_Z_trunc)
+
+plotly_example <- plot_ly() %>%
+  add_histogram(x = ~Z_trunc, histnorm = "probability density", nbinsx = 20, name = "Z_trunc") %>%
+  add_lines(x = ~range_x, y = ~final_density, color = I("orange"), name = "Final Density") %>%
+  layout(title = "Truncated Normal Dist",
+         xaxis = list(title = "Z_trunc"),
+         yaxis = list(title = "Density"))
+
+dashboard <- subplot(plotly_example, converted_ggplot, simple_plot, nrows = 3, titleX = FALSE)
+
+layout(dashboard, title = "Plotly Dashboard")
+
+```
+
+  The inputs in plot_ly() are the data, x, y, type, mode, color, size, and text. The x and y control which variables are plotted on which axis, while the type parameter controls the graph type. Mode is an optional parameter that determines whether the points will be represented as a connected line, points, or data labels. The rest of the inputs are fairly self explanatory and aesthetic. 
+  To conclude, simple plots are best left to simple plotting methods. As plotting becomes more complex, using ggplot() is more advantageous. Plotly introduces an interactive element to graphing in R that maintains a wide range of plot types, and useful functions for creating a graph dashboard.
+
+\newpage
+References
+
+- Adler, Joseph. “Chapter 15: Ggplot2.” R In A Nutshell, 2nd ed., O’Reilly Media, Sebastopol, California, 2012, pp. 325–347. 
+- “Getting Started with Plotly in R.” GeeksforGeeks, GeeksforGeeks, 26 Mar. 2024, www.geeksforgeeks.org/getting-started-with-plotly-in-r/. 
+- “Plotly Package.” RDocumentation, www.rdocumentation.org/packages/plotly/versions/4.10.4. Accessed 13 May 2024. 
+- “Scatter and Line Plots in R.” Plotly, plotly.com/r/line-and-scatter/. Accessed 13 May 2024. 
+- Sievert, Carson. “Interactive Web-Based Data Visualization with R, Plotly, and Shiny.” 2 Overview, 19 Dec. 2019, plotly-r.com/overview. 
+- Data from the federal reserve: federalreserve.RData
+- COVID-19 Data from the European CDC using link to CSV: https://opendata.ecdc.europa.eu/covid19/casedistribution/csv
