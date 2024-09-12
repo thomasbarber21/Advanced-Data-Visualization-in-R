@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Data Visualization in R</title>
+</head>
+<body>
+
+    <h1>Advanced Data Visualization in R</h1>
+    <h2>Author: Tom Barber</h2>
+    <h3>Subtitle: A Comparison of Standard Methods, ggplot, and Plotly</h3>
+
+    <h2>Introduction</h2>
+    <p>
+      Data visualization in R is a broad topic. There are many different packages that provide advanced ways to display information beyond the standard methods provided in R. With so many different packages it is important to use the ones that are best suited for the needs of the user. As such, the following comparisons of standard methods, ggplot, and plotly will help users differentiate packages and use the best one for their needs.
+    </p>
+
+    <h2>Standard Plotting Methods</h2>
+    <p>
+      In R there are very simple plotting methods that do not require outside installation of packages, such as 'hist()', 'density()', and 'barplot()'. Below is an example using a truncated normal distribution plotted with 'hist()'.
+    </p>
+    <pre><code>
+    Z <- rnorm(10000, mean = 0, sd = 1)
+    Z_trunc <- Z[Z >= 0.5]
+    range_x <- seq(min(Z_trunc), max(Z_trunc), length.out = 10000)
+    num <- dnorm(range_x, mean = mean(Z_trunc), sd = sd(Z_trunc))
+    denom <- pnorm(max(range_x), mean = mean(Z_trunc), sd = sd(Z_trunc)) - pnorm(min(range_x),mean = mean(Z_trunc), sd = sd(Z_trunc))
+    final_density <- num / denom
+    </code></pre>
+
+    <pre><code>
+    hist(Z_trunc, breaks = 40, freq = FALSE, main = "Z_trunc in Standard Plot Method")
+    </code></pre>
+
+    <h2>Advanced Visualization with ggplot2</h2>
+    <p>
+      ggplot2 is a more robust package for complex data visualization. Below is the same data plotted using ggplot2.
+    </p>
+    <pre><code>
+    ggplot()+
+      geom_histogram(aes(x = Z_trunc, y = after_stat(density)), bins = 40)+
+      scale_x_continuous(limits = c(0.5, max(Z_trunc)))+
+      labs(title = "Histogram of Z_trunc using ggplot", x = "Z_trunc", y = "Density")
+    </code></pre>
+
+    <h2>Comparison of Standard Methods and ggplot</h2>
+    <pre><code>
+    hist(Z_trunc, breaks = 20, freq = FALSE, main = "Z_trunc and normal dist in Standard Plot Method")
+    lines(range_x, final_density, col = 'orange')
+    </code></pre>
+
+    <pre><code>
+    ggplot()+
+      geom_histogram(aes(x = Z_trunc, y = after_stat(density)), bins = 20)+
+      geom_line(aes(x = range_x, y = final_density), color = "orange")+
+      labs(title = "Histogram of Z_trunc and normal dist using ggplot", x = "Z_trunc", y = "Density")
+    </code></pre>
+
+    <h2>Interactive Visualization with Plotly</h2>
+    <p>
+      Plotly is an interactive graphing library that allows for dynamic visualization. Below is an interactive example using plotly.
+    </p>
+    <pre><code>
+    plot_ly(new_data, x = ~date, y = ~cases, color = ~country, type = "scatter", mode = "lines", line = list(width = 2))
+    </code></pre>
+
+    <h2>Conclusion</h2>
+    <p>
+      Simple plots are best suited to standard R plotting methods. As visualization becomes more complex, using ggplot2 is more advantageous. Plotly introduces interactivity to visualization that ggplot does not.
+    </p>
+
+    <h2>References</h2>
+    <ul>
+        <li>Adler, Joseph. “Chapter 15: Ggplot2.” R In A Nutshell, O’Reilly Media, 2012.</li>
+        <li>“Getting Started with Plotly in R.” GeeksforGeeks, www.geeksforgeeks.org.</li>
+        <li>“Plotly Package.” RDocumentation, www.rdocumentation.org.</li>
+        <li>“Scatter and Line Plots in R.” Plotly, plotly.com.</li>
+    </ul>
+
+</body>
+</html>
